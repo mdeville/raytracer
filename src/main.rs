@@ -6,51 +6,90 @@ use lights::{Directionnal, Point};
 use minifb::{Key, Window, WindowOptions};
 use nalgebra::base::*;
 use nalgebra::geometry::Rotation3;
-use objects::{Circle, Plane};
+use objects::{Sphere, Plane};
 use std::f64::consts::PI;
 use utils::{Camera, Scene};
+use rand::Rng;
 
 const WIDTH: usize = 2560;
 const HEIGHT: usize = 1600;
 
 fn init_scene() -> Scene {
     let mut scene = Scene::new();
+    let mut rng = rand::thread_rng();
 
-    let red_circle: Circle = Circle::new(
-        Vector3::new(0.0, 3.0, -2.0),
+    let red_sphere: Sphere = Sphere::new(
+        Vector3::new(0.0, 3.0, -3.0),
         1.0,
         Vector3::new(1.0, 0.0, 0.0),
+        0.0,
+        0.0,
     );
-    let green_circle: Circle = Circle::new(
+    let green_sphere: Sphere = Sphere::new(
         Vector3::new(0.0, 3.5, 1.5),
         0.3,
         Vector3::new(0.0, 1.0, 0.0),
+        0.0,
+        0.0,
     );
-    let blue_circle: Circle = Circle::new(
+    let blue_sphere: Sphere = Sphere::new(
         Vector3::new(1.0, 4.0, 0.0),
         1.0,
         Vector3::new(0.0, 0.0, 1.0),
+        0.0,
+        0.0,
     );
-    scene.objects.push(Box::new(red_circle));
-    scene.objects.push(Box::new(green_circle));
-    scene.objects.push(Box::new(blue_circle));
+    let corner_sphere: Sphere = Sphere::new(
+        Vector3::new(5.0, 10.0, -5.0),
+        1.0,
+        Vector3::new(0.0, 1.0, 1.0),
+        0.0,
+        0.0,
+    );
+
+    let random_sphere: Sphere = Sphere::new(
+        Vector3::new(rng.gen_range(-5.0..5.0), rng.gen_range(0.0..10.0), rng.gen_range(-5.0..5.0)),
+        rng.gen_range(0.01..1.0),
+        Vector3::new(rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0)),
+        0.0,
+        0.0
+    );
+    scene.objects.push(Box::new(red_sphere));
+    scene.objects.push(Box::new(green_sphere));
+    scene.objects.push(Box::new(blue_sphere));
+    scene.objects.push(Box::new(corner_sphere));
+    scene.objects.push(Box::new(random_sphere));
 
     let bottom: Plane = Plane::new(
         Vector3::new(0.0, 0.0, -5.0),
         Vector3::new(0.0, 0.0, 1.0),
         Vector3::new(1.0, 1.0, 1.0),
+        0.0,
+        0.0,
+    );
+    let left: Plane = Plane::new(
+        Vector3::new(-5.0, 0.0, 0.0),
+        Vector3::new(1.0, 0.0, 0.0),
+        Vector3::new(1.0, 1.0, 1.0),
+        0.2,
+        0.0,
     );
     let right: Plane = Plane::new(
         Vector3::new(5.0, 0.0, 0.0),
         Vector3::new(-1.0, 0.0, 0.0),
         Vector3::new(1.0, 1.0, 1.0),
+        0.2,
+        0.0,
     );
     let back: Plane = Plane::new(
         Vector3::new(0.0, 10.0, 0.0),
         Vector3::new(0.0, -1.0, 0.0),
         Vector3::new(1.0, 1.0, 1.0),
+        0.2,
+        0.0,
     );
     scene.objects.push(Box::new(bottom));
+    scene.objects.push(Box::new(left));
     scene.objects.push(Box::new(right));
     scene.objects.push(Box::new(back));
 
@@ -91,8 +130,8 @@ fn main() {
     camera.start_rendering(scene, 10);
     // Rendering loop
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        for (idx, color) in camera.receiver.try_iter() {
-            buffer[idx] = color;
+        for (idx, line) in camera.receiver.try_iter() {
+            buffer[idx..idx+WIDTH].copy_from_slice(&line);
         }
         window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
     }

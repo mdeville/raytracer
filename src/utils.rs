@@ -1,9 +1,11 @@
 use crate::lights::Light;
 use crate::objects::Object;
+use nalgebra::max;
 use nalgebra::base::{Vector2, Vector3};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use rayon::prelude::*;
+use std::process;
 
 fn vec2color(input: Vector3<f64>) -> u32 {
     let mut color: u32 = ((input.x * 255.0) as u32) << 16;
@@ -11,7 +13,7 @@ fn vec2color(input: Vector3<f64>) -> u32 {
     color + (input.z * 255.0) as u32
 }
 
-fn raytrace(scene: &Scene, origin: Vector3<f64>, ray: Vector3<f64>, _depth: u32) -> Vector3<f64> {
+fn raytrace(scene: &Scene, origin: Vector3<f64>, ray: Vector3<f64>, depth: u32) -> Vector3<f64> {
     let mut min_distance = f64::INFINITY;
     let mut closest: Option<&Box<dyn Object + Sync + Send>> = None;
     for object in scene.objects.iter() {
@@ -23,29 +25,32 @@ fn raytrace(scene: &Scene, origin: Vector3<f64>, ray: Vector3<f64>, _depth: u32)
         }
     }
     if let Some(closest) = closest {
-        let pos = origin + min_distance * ray;
-        let normal = closest.normal(pos);
-        let mut illumination = 0.0;
+        let hit_pos = origin + min_distance * ray;
+        let normal = closest.normal(hit_pos);
+        let reflection = closest.reflection();
+        let refraction = closest.refraction();
         let mut color = Vector3::new(0.0, 0.0, 0.0);
+        if reflection > 0.0 && depth > 0 {
+            let reflection_ray = ray - 2.0 * (normal.dot(&ray)) * normal;
+            let tmp = hit_pos + reflection_ray * 1e-4;
+            color += raytrace(scene, tmp, reflection_ray, depth - 1) * reflection;
+        }
         for light in scene.lights.iter() {
-            let shadow_ray = light.shadow_ray(pos);
-            let tmp = pos + shadow_ray * 1e-4;
+            let shadow_ray = light.shadow_ray(hit_pos);
+            let light_distance = light.distance(hit_pos);
+            let tmp = hit_pos + shadow_ray * 1e-4;
             let mut in_shadow = false;
             for object in scene.objects.iter() {
-                if object.intersect(tmp, shadow_ray) != None {
-                    in_shadow = true;
+                if let Some(distance) = object.intersect(tmp, shadow_ray) {
+                    in_shadow = distance < light_distance;
                     break;
                 }
             }
             if !in_shadow {
-                illumination += normal.dot(&shadow_ray) * light.brightness();
-                color += light.color();
+                color += (normal.dot(&shadow_ray) * light.brightness() * light.color()).component_mul(&closest.color());
             }
         }
-        if illumination > 1.0 {
-            illumination = 1.0;
-        }
-        return closest.color() * illumination;
+        return color.inf(&Vector3::new(1.0, 1.0, 1.0));
     }
     Vector3::new(0.0, 0.0, 0.0)
 }
@@ -70,8 +75,8 @@ pub struct Camera {
     pub vertical: Vector3<f64>,
     pub viewport: Vector2<f64>,
     pub fov: f64,
-    sender: Sender<(usize, u32)>,
-    pub receiver: Receiver<(usize, u32)>,
+    sender: Sender<(usize, Vec<u32>)>,
+    pub receiver: Receiver<(usize, Vec<u32>)>,
 }
 
 impl Camera {
@@ -107,12 +112,15 @@ impl Camera {
             loop {
                 let ls = sender.clone();
                 (0..height).into_par_iter().for_each_with(ls, |s, i| {
+                    let mut buffer: Vec<u32> = Vec::new();
                     for j in 0..width {
                         let ray = (pm + qx * j as f64 - qy * i as f64).normalize();
                         let color = raytrace(&scene, eye, ray, depth);
-                        if s.send((i * width + j, vec2color(color))).is_err() {
-                            break
-                        }
+                        buffer.push(vec2color(color));
+                    }
+                    // Send rendered buffer to main
+                    if s.send((i * width, buffer)).is_err() {
+                        process::exit(0);
                     }
                 })
             }
