@@ -34,20 +34,21 @@ fn raytrace(scene: &Scene, origin: Vector3<f64>, ray: Vector3<f64>, depth: u32) 
             let reflection_ray = ray - 2.0 * (normal.dot(&ray)) * normal;
             let tmp = hit_pos + reflection_ray * 1e-4;
             color += raytrace(scene, tmp, reflection_ray, depth - 1) * reflection;
-        }
-        for light in scene.lights.iter() {
-            let shadow_ray = light.shadow_ray(hit_pos);
-            let light_distance = light.distance(hit_pos);
-            let tmp = hit_pos + shadow_ray * 1e-4;
-            let mut in_shadow = false;
-            for object in scene.objects.iter() {
-                if let Some(distance) = object.intersect(tmp, shadow_ray) {
-                    in_shadow = distance < light_distance;
-                    break;
+        } else {
+            for light in scene.lights.iter() {
+                let shadow_ray = light.shadow_ray(hit_pos);
+                let light_distance = light.distance(hit_pos);
+                let tmp = hit_pos + shadow_ray * 1e-4;
+                let mut in_shadow = false;
+                for object in scene.objects.iter() {
+                    if let Some(distance) = object.intersect(tmp, shadow_ray) {
+                        in_shadow = distance < light_distance;
+                        break;
+                    }
                 }
-            }
-            if !in_shadow {
-                color += (normal.dot(&shadow_ray) * light.brightness() * light.color()).component_mul(&closest.color());
+                if !in_shadow {
+                    color += (normal.dot(&shadow_ray) * light.brightness() * light.color()).component_mul(&closest.color());
+                }
             }
         }
         return color.inf(&Vector3::new(1.0, 1.0, 1.0));
