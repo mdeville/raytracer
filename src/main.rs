@@ -1,104 +1,84 @@
 mod lights;
 mod objects;
+mod camera;
+mod scene;
 mod utils;
 
 use lights::{Directionnal, Point};
 use minifb::{Key, Window, WindowOptions};
 use nalgebra::base::*;
 use nalgebra::geometry::Rotation3;
-use objects::{Sphere, Plane};
+use objects::{Sphere, Plane, Cone, Cylinder};
 use std::f64::consts::PI;
-use utils::{Camera, Scene};
+use camera::Camera;
+use scene::Scene;
 use rand::Rng;
 
-const WIDTH: usize = 2560;
-const HEIGHT: usize = 1600;
+const WIDTH: usize = 3840;
+const HEIGHT: usize = 2160;
 
 fn init_scene() -> Scene {
     let mut scene = Scene::new();
     let mut rng = rand::thread_rng();
 
-    let red_sphere: Sphere = Sphere::new(
-        Vector3::new(0.0, 3.0, -3.0),
-        1.0,
-        Vector3::new(1.0, 0.0, 0.0),
+/*     let cone = Cone::new(
+        Vector3::new(0.0, 10.0, 0.0),
+        Vector3::new(0.0, 0.0, 1.0).normalize(),
+        PI / 8.0,
+        Vector3::new(0.5, 0.5, 0.8),
         0.0,
-        0.0,
-    );
-    let green_sphere: Sphere = Sphere::new(
-        Vector3::new(0.0, 3.5, 1.5),
-        0.3,
-        Vector3::new(0.0, 1.0, 0.0),
-        0.0,
-        0.0,
-    );
-    let blue_sphere: Sphere = Sphere::new(
-        Vector3::new(1.0, 4.0, 0.0),
-        1.0,
-        Vector3::new(0.0, 0.0, 1.0),
-        0.0,
-        0.0,
-    );
-    let corner_sphere: Sphere = Sphere::new(
-        Vector3::new(5.0, 10.0, -5.0),
-        1.0,
-        Vector3::new(0.0, 1.0, 1.0),
-        0.0,
-        0.0,
-    );
+        0.0);
+    scene.objects.push(Box::new(cone)); */
 
-    let random_sphere: Sphere = Sphere::new(
-        Vector3::new(rng.gen_range(-5.0..5.0), rng.gen_range(0.0..10.0), rng.gen_range(-5.0..5.0)),
-        rng.gen_range(0.01..1.0),
-        Vector3::new(rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0)),
-        0.0,
-        0.0
-    );
-    scene.objects.push(Box::new(red_sphere));
-    scene.objects.push(Box::new(green_sphere));
-    scene.objects.push(Box::new(blue_sphere));
-    scene.objects.push(Box::new(corner_sphere));
-    scene.objects.push(Box::new(random_sphere));
+    let cylinder = Cylinder::new(
+        Vector3::new(0.0, 5.0, 0.0),
+        Vector3::new(1.0, 0.0, 1.0).normalize(),
+        0.5,
+        Vector3::new(0.5, 0.5, 0.8),
+        0.5,
+        0.0);
+    scene.objects.push(Box::new(cylinder));
 
+    for _ in 0..20 {
+        let random_sphere: Sphere = Sphere::new(
+            Vector3::new(rng.gen_range(-5.0..5.0), rng.gen_range(0.0..10.0), rng.gen_range(-5.0..5.0)),
+            rng.gen_range(0.01..1.0),
+            Vector3::new(rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0)),
+            rng.gen_range(0.0..1.0),
+            0.0
+        );
+        scene.objects.push(Box::new(random_sphere));
+    }
+   
     let bottom: Plane = Plane::new(
         Vector3::new(0.0, 0.0, -5.0),
         Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(1.0, 1.0, 1.0),
+        Vector3::new(1.0, 0.5, 0.2),
         0.0,
-        0.0,
-    );
-    let left: Plane = Plane::new(
-        Vector3::new(-5.0, 0.0, 0.0),
-        Vector3::new(1.0, 0.0, 0.0),
-        Vector3::new(1.0, 1.0, 1.0),
-        0.9,
-        0.0,
-    );
-    let right: Plane = Plane::new(
-        Vector3::new(5.0, 0.0, 0.0),
-        Vector3::new(-1.0, 0.0, 0.0),
-        Vector3::new(1.0, 1.0, 1.0),
-        0.9,
-        0.0,
-    );
-    let back: Plane = Plane::new(
-        Vector3::new(0.0, 10.0, 0.0),
-        Vector3::new(0.0, -1.0, 0.0),
-        Vector3::new(1.0, 1.0, 1.0),
-        0.9,
         0.0,
     );
     scene.objects.push(Box::new(bottom));
-    scene.objects.push(Box::new(left));
-    scene.objects.push(Box::new(right));
+    
+    let back: Plane = Plane::new(
+        Vector3::new(0.0, 10.0, 0.0),
+        Vector3::new(0.0, -1.0, 0.0),
+        Vector3::new(0.0, 0.5, 0.0),
+        0.5,
+        0.0,
+    );
     scene.objects.push(Box::new(back));
 
     let light1: Point = Point::new(
-        Vector3::new(-4.0, 2.0, 4.9),
+        Vector3::new(-5.0, 0.0, 4.9),
         Vector3::new(1.0, 1.0, 1.0),
         1.0,
     );
-    //let light2: Directionnal = Directionnal::new(Vector3::new(0.0, 0.0, -1.0), Vector3::new(1.0, 1.0, 1.0), 1.0);
+/*     let light2: Point = Point::new(
+        Vector3::new(-4.0, 3.0, 4.9),
+        Vector3::new(1.0, 1.0, 1.0),
+        0.5,
+    ); */
+    //let light2: Directionnal = Directionnal::new(Vector3::new(0.0, 0.0, -1.0), Vector3::new(1.0, 1.0, 1.0), 0.5);
     scene.lights.push(Box::new(light1));
     //scene.lights.push(Box::new(light2));
     scene
@@ -111,7 +91,7 @@ fn main() {
         "Raytracer - ESC to exit",
         WIDTH,
         HEIGHT,
-        WindowOptions::default(),
+        WindowOptions {borderless: true, ..Default::default()},
     )
     .unwrap_or_else(|e| {
         panic!("{}", e);
@@ -127,7 +107,7 @@ fn main() {
     camera.vertical = (rot * camera.vertical).normalize();
     let scene = init_scene();
 
-    camera.start_rendering(scene, 10);
+    camera.start_rendering(scene, 3);
     // Rendering loop
     while window.is_open() && !window.is_key_down(Key::Escape) {
         for (idx, line) in camera.receiver.try_iter() {
