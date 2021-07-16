@@ -14,8 +14,8 @@ use camera::Camera;
 use scene::Scene;
 use rand::Rng;
 
-const WIDTH: usize = 3840;
-const HEIGHT: usize = 2160;
+const WIDTH: usize = 1920;
+const HEIGHT: usize = 1080;
 
 fn init_scene() -> Scene {
     let mut scene = Scene::new();
@@ -31,12 +31,13 @@ fn init_scene() -> Scene {
     scene.objects.push(Box::new(cone)); */
 
     let cylinder = Cylinder::new(
-        Vector3::new(0.0, 5.0, 0.0),
-        Vector3::new(1.0, 0.0, 1.0).normalize(),
-        0.5,
-        Vector3::new(0.5, 0.5, 0.8),
-        0.5,
-        0.0);
+        Vector3::new(0.0, 5.0, 0.0),                // Position
+        Vector3::new(1.0, 0.0, 1.0).normalize(),    // Direction vector *NEEDS TO BE NORMALIZED*
+        0.5,                                        // Width of the cylinder
+        Vector3::new(0.5, 0.5, 0.8),                // Color scaled from 0 to 1 in RGB
+        0.5,                                        // Reflection index
+        0.0                                         // Refraction index
+    );
     scene.objects.push(Box::new(cylinder));
 
     for _ in 0..20 {
