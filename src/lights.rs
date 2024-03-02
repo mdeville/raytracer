@@ -1,6 +1,6 @@
 use nalgebra::base::Vector3;
 
-pub trait Light {
+pub trait Light: Send + Sync {
     fn color(&self) -> Vector3<f64>;
     fn brightness(&self) -> f64;
     fn shadow_ray(&self, origin: Vector3<f64>) -> Vector3<f64>;
