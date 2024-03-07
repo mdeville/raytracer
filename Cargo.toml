@@ -1,13 +1,13 @@
 [package]
-name = "raytracer"
-version = "0.1.0"
-authors = ["Matthew Deville <mdeville@student.42.fr>"]
-edition = "2018"
+    name = "raytracer"
+    version = "0.1.0"
+    authors = ["Matthew Deville <mdeville@student.42.fr>"]
+    edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-minifb = "*"
-nalgebra = "*"
-rayon = "*"
-rand = "*"
+    minifb = "*"
+    nalgebra = "*"
+    rayon = "*"
+    rand = "*"
